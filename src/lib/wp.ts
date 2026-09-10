@@ -92,12 +92,27 @@ export function mapPost(raw: RawPost): WpPost {
   };
 }
 
+const cache = new Map<number, Promise<WpPost[]>>();
+
 export async function fetchPosts(perPage = 24, signal?: AbortSignal): Promise<WpPost[]> {
-  const res = await fetch(`${WP_POSTS_ENDPOINT}&per_page=${perPage}`, { signal });
-  if (!res.ok) throw new Error(`WordPress request failed (${res.status})`);
-  const data = (await res.json()) as RawPost[];
-  if (!Array.isArray(data)) throw new Error("Unexpected response from WordPress.");
-  return data.map(mapPost);
+  const cached = cache.get(perPage);
+  if (cached) return cached;
+
+  const request = (async () => {
+    const res = await fetch(`${WP_POSTS_ENDPOINT}&per_page=${perPage}`, { signal });
+    if (!res.ok) throw new Error(`WordPress request failed (${res.status})`);
+    const data = (await res.json()) as RawPost[];
+    if (!Array.isArray(data)) throw new Error("Unexpected response from WordPress.");
+    return data.map(mapPost);
+  })();
+
+  cache.set(perPage, request);
+  request.catch(() => cache.delete(perPage));
+  return request;
+}
+
+export function clearPostsCache() {
+  cache.clear();
 }
 
 export async function fetchPostBySlug(slug: string, signal?: AbortSignal): Promise<WpPost | null> {
