@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
-import { articles, blogCategories } from "@/lib/data";
+import fallbackImg from "@/assets/hero.jpg";
+import { ErrorState, LoadingState } from "@/components/site/Loading";
+import { useWpPosts } from "@/lib/wp";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +21,8 @@ export const Route = createFileRoute("/journal/")({
         property: "og:description",
         content: "Evidence-based articles on infant feeding and development.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: JournalPage,
@@ -36,9 +40,16 @@ function Avatar() {
 }
 
 function JournalPage() {
+  const { posts, loading, error, retry } = useWpPosts(24);
   const [cat, setCat] = useState("All");
-  const [featured, ...rest] = articles;
-  const list = (cat === "All" ? rest : rest.filter((a) => a.category === cat));
+
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(posts.flatMap((p) => p.categories))).sort()],
+    [posts],
+  );
+
+  const [featured, ...rest] = posts;
+  const list = cat === "All" ? rest : rest.filter((a) => a.categories.includes(cat));
 
   return (
     <>
@@ -49,7 +60,7 @@ function JournalPage() {
             Clinic-grade explainers on how babies learn to eat — and what to do when it gets tricky.
           </p>
           <div className="no-scrollbar mt-6 flex gap-2 overflow-x-auto pb-1">
-            {blogCategories.map((c) => (
+            {categories.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -69,66 +80,87 @@ function JournalPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12">
-        <article className="grid gap-6 overflow-hidden rounded-[2rem] bg-card shadow-sm md:grid-cols-2">
-          <img
-            src={featured.image}
-            alt={featured.title}
-            loading="lazy"
-            width={768}
-            height={768}
-            className="h-full min-h-64 w-full object-cover"
-          />
-          <div className="p-6 md:py-10 md:pr-10">
-            <span className="rounded-full bg-gold-soft px-3 py-1 text-xs font-bold">★ Doctor's Pick</span>
-            <h2 className="mt-4 text-2xl leading-snug md:text-3xl">{featured.title}</h2>
-            <p className="mt-3 text-muted-foreground">{featured.excerpt}</p>
-            <p className="mt-4 inline-flex items-center gap-3 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> {featured.readTime} · {featured.date}
-            </p>
-            <div className="mt-6">
-              <Button asChild className="rounded-full">
-                <Link to="/journal/$slug" params={{ slug: featured.slug }}>
-                  Read the article
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </article>
-
-        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {list.map((a) => (
-            <article key={a.slug} className="card-soft overflow-hidden transition-shadow hover:shadow-lift">
-              <Link to="/journal/$slug" params={{ slug: a.slug }}>
-                <img
-                  src={a.image}
-                  alt={a.title}
-                  loading="lazy"
-                  width={768}
-                  height={768}
-                  className="aspect-4/3 w-full object-cover"
-                />
-              </Link>
-              <div className="space-y-3 p-5">
-                <span className="inline-block rounded-full bg-sage-soft px-3 py-1 text-xs font-semibold text-secondary">
-                  {a.category}
+        {loading ? (
+          <LoadingState label="Loading the latest articles…" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={retry} />
+        ) : !featured ? (
+          <p className="text-muted-foreground">No articles published yet.</p>
+        ) : (
+          <>
+            <article className="grid gap-6 overflow-hidden rounded-[2rem] bg-card shadow-sm md:grid-cols-2">
+              <img
+                src={featured.image ?? fallbackImg}
+                alt={featured.title}
+                loading="lazy"
+                width={768}
+                height={768}
+                className="h-full min-h-64 w-full object-cover"
+              />
+              <div className="p-6 md:py-10 md:pr-10">
+                <span className="rounded-full bg-gold-soft px-3 py-1 text-xs font-bold">
+                  ★ Doctor's Pick
                 </span>
-                <h3 className="text-lg leading-snug">
-                  <Link to="/journal/$slug" params={{ slug: a.slug }} className="hover:text-primary">
-                    {a.title}
-                  </Link>
-                </h3>
-                <p className="line-clamp-3 text-sm text-muted-foreground">{a.excerpt}</p>
-                <div className="flex items-center justify-between pt-1">
-                  <Avatar />
-                  <span className="text-xs text-muted-foreground">{a.readTime}</span>
+                <h2 className="mt-4 text-2xl leading-snug md:text-3xl">{featured.title}</h2>
+                <p className="mt-3 line-clamp-4 text-muted-foreground">{featured.excerpt}</p>
+                <p className="mt-4 inline-flex items-center gap-3 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" /> {featured.readTime} · {featured.dateLabel}
+                </p>
+                <div className="mt-6">
+                  <Button asChild className="rounded-full">
+                    <Link to="/journal/$slug" params={{ slug: featured.slug }}>
+                      Read the article
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </article>
-          ))}
-          {list.length === 0 && (
-            <p className="text-muted-foreground">No articles in this category yet — new ones monthly.</p>
-          )}
-        </div>
+
+            <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {list.map((a) => (
+                <article
+                  key={a.id}
+                  className="card-soft overflow-hidden transition-shadow hover:shadow-lift"
+                >
+                  <Link to="/journal/$slug" params={{ slug: a.slug }}>
+                    <img
+                      src={a.image ?? fallbackImg}
+                      alt={a.title}
+                      loading="lazy"
+                      width={768}
+                      height={576}
+                      className="aspect-4/3 w-full object-cover"
+                    />
+                  </Link>
+                  <div className="space-y-3 p-5">
+                    <span className="inline-block rounded-full bg-sage-soft px-3 py-1 text-xs font-semibold text-secondary">
+                      {a.category}
+                    </span>
+                    <h3 className="text-lg leading-snug">
+                      <Link
+                        to="/journal/$slug"
+                        params={{ slug: a.slug }}
+                        className="hover:text-primary"
+                      >
+                        {a.title}
+                      </Link>
+                    </h3>
+                    <p className="line-clamp-3 text-sm text-muted-foreground">{a.excerpt}</p>
+                    <div className="flex items-center justify-between pt-1">
+                      <Avatar />
+                      <span className="text-xs text-muted-foreground">{a.readTime}</span>
+                    </div>
+                  </div>
+                </article>
+              ))}
+              {list.length === 0 && (
+                <p className="text-muted-foreground">
+                  No articles in this category yet — new ones monthly.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </section>
     </>
   );
