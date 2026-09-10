@@ -4,15 +4,8 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RecipeCard } from "@/components/site/RecipeCard";
 import { RecipeDialog } from "@/components/site/RecipeDialog";
-import {
-  ageFilters,
-  dietFilters,
-  mealFilters,
-  prepFilters,
-  recipes,
-  stripEmoji,
-  type Recipe,
-} from "@/lib/data";
+import { ErrorState, LoadingState } from "@/components/site/Loading";
+import { useWpPosts, type WpPost } from "@/lib/wp";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recipes")({
@@ -22,27 +15,21 @@ export const Route = createFileRoute("/recipes")({
       {
         name: "description",
         content:
-          "Filter wholesome baby and toddler recipes by age, meal type, dietary need and prep time. Reviewed by Dr. Reham Emam.",
+          "Filter wholesome baby and toddler recipes by category and search live from the Baby Food Essentials kitchen. Reviewed by Dr. Reham Emam.",
       },
       { property: "og:title", content: "Recipes Hub — Baby Food Essentials" },
       {
         property: "og:description",
         content: "Wholesome, doctor-backed recipes for every feeding stage.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: RecipesPage,
 });
 
-function Pill({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -59,51 +46,25 @@ function Pill({
   );
 }
 
-function FilterRow({
-  title,
-  options,
-  selected,
-  onToggle,
-}: {
-  title: string;
-  options: string[];
-  selected: string[];
-  onToggle: (v: string) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-        {options.map((o) => (
-          <Pill key={o} label={o} active={selected.includes(o)} onClick={() => onToggle(o)} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function RecipesPage() {
+  const { posts, loading, error, retry } = useWpPosts(24);
   const [query, setQuery] = useState("");
-  const [age, setAge] = useState("All Stages");
-  const [meals, setMeals] = useState<string[]>([]);
-  const [diets, setDiets] = useState<string[]>([]);
-  const [preps, setPreps] = useState<string[]>([]);
-  const [open, setOpen] = useState<Recipe | null>(null);
+  const [category, setCategory] = useState("All");
+  const [open, setOpen] = useState<WpPost | null>(null);
 
-  const toggle = (setter: typeof setMeals) => (v: string) =>
-    setter((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(posts.flatMap((p) => p.categories))).sort()],
+    [posts],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return recipes.filter((r) => {
-      if (q && !`${r.title} ${r.summary} ${r.highlight}`.toLowerCase().includes(q)) return false;
-      if (age !== "All Stages" && !r.ageGroups.includes(age)) return false;
-      if (meals.length && !meals.some((m) => r.mealTypes.includes(m))) return false;
-      if (diets.length && !diets.every((d) => r.dietary.includes(d))) return false;
-      if (preps.length && !preps.every((p) => r.prepTags.includes(stripEmoji(p)))) return false;
+    return posts.filter((p) => {
+      if (q && !`${p.title} ${p.excerpt}`.toLowerCase().includes(q)) return false;
+      if (category !== "All" && !p.categories.includes(category)) return false;
       return true;
     });
-  }, [query, age, meals, diets, preps]);
+  }, [posts, query, category]);
 
   return (
     <>
@@ -123,33 +84,38 @@ function RecipesPage() {
               />
             </div>
             <span className="shrink-0 text-sm font-semibold text-secondary">
-              {filtered.length} result{filtered.length === 1 ? "" : "s"}
+              {loading ? "…" : `${filtered.length} result${filtered.length === 1 ? "" : "s"}`}
             </span>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl space-y-5 px-4 py-8">
-        <FilterRow
-          title="By age"
-          options={ageFilters}
-          selected={[age]}
-          onToggle={(v) => setAge(v)}
-        />
-        <FilterRow title="By meal type" options={mealFilters} selected={meals} onToggle={toggle(setMeals)} />
-        <FilterRow title="By dietary needs" options={dietFilters} selected={diets} onToggle={toggle(setDiets)} />
-        <FilterRow title="By prep & nutrition" options={prepFilters} selected={preps} onToggle={toggle(setPreps)} />
-      </section>
+      {categories.length > 1 && (
+        <section className="mx-auto max-w-7xl px-4 py-8">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Browse by category
+          </p>
+          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+            {categories.map((c) => (
+              <Pill key={c} label={c} active={category === c} onClick={() => setCategory(c)} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      <section className="mx-auto max-w-7xl px-4 pb-16">
-        {filtered.length === 0 ? (
+      <section className="mx-auto max-w-7xl px-4 pb-16 pt-4">
+        {loading ? (
+          <LoadingState label="Fetching the latest recipes…" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={retry} />
+        ) : filtered.length === 0 ? (
           <p className="card-soft p-10 text-center text-muted-foreground">
-            No recipes match these filters yet — try clearing a couple.
+            No recipes match your search yet — try a different word or category.
           </p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.slice(0, 4).map((r) => (
-              <RecipeCard key={r.id} recipe={r} onOpen={setOpen} />
+            {filtered.slice(0, 4).map((p) => (
+              <RecipeCard key={p.id} post={p} onOpen={setOpen} />
             ))}
             {filtered.length > 4 && (
               <div className="rounded-2xl border-l-4 border-accent bg-gold-soft p-6 sm:col-span-2 lg:col-span-3 xl:col-span-4">
@@ -159,14 +125,14 @@ function RecipesPage() {
                 </p>
               </div>
             )}
-            {filtered.slice(4).map((r) => (
-              <RecipeCard key={r.id} recipe={r} onOpen={setOpen} />
+            {filtered.slice(4).map((p) => (
+              <RecipeCard key={p.id} post={p} onOpen={setOpen} />
             ))}
           </div>
         )}
       </section>
 
-      <RecipeDialog recipe={open} onOpenChange={(o) => !o && setOpen(null)} />
+      <RecipeDialog post={open} onOpenChange={(o) => !o && setOpen(null)} />
     </>
   );
 }
