@@ -138,7 +138,7 @@ export async function fetchPostBySlug(slug: string, signal?: AbortSignal): Promi
   return data[0] ? mapPost(data[0]) : null;
 }
 
-export function useWpPosts(perPage = 24) {
+export function useWpPosts(perPage = 100) {
   const [posts, setPosts] = useState<WpPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
