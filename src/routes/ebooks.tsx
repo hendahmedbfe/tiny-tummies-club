@@ -55,7 +55,7 @@ function EbooksPage() {
   const [cat, setCat] = useState("All");
   const [checkout, setCheckout] = useState<Product | null>(null);
   const [purchased, setPurchased] = useState(false);
-  const bestseller = products[0];
+  const bestseller = products[0]!;
   const catalog = products.filter((p) => p.id !== bestseller.id);
   const shown = cat === "All" ? catalog : catalog.filter((p) => p.category === cat);
 

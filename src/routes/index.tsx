@@ -180,7 +180,7 @@ function Home() {
               smooth purees too long makes lumps much harder to accept later.
             </div>
             <Button asChild variant="outline" className="mt-5 rounded-full">
-              <Link to="/journal/textures-and-speech">Read the full guide</Link>
+              <Link to="/journal">Read the full guide</Link>
             </Button>
           </div>
         </div>
