@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RecipeCard } from "@/components/site/RecipeCard";
 import { RecipeDialog } from "@/components/site/RecipeDialog";
-import { recipes, type Recipe } from "@/lib/data";
+import { ErrorState, LoadingState } from "@/components/site/Loading";
+import { useWpPosts, type WpPost } from "@/lib/wp";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,8 +46,9 @@ const stages = [
 ];
 
 function Home() {
-  const [open, setOpen] = useState<Recipe | null>(null);
-  const featured = recipes.slice(0, 4);
+  const [open, setOpen] = useState<WpPost | null>(null);
+  const { posts, loading, error, retry } = useWpPosts(24);
+  const featured = posts.slice(0, 4);
 
   return (
     <>
@@ -95,14 +97,16 @@ function Home() {
             height={1024}
             className="w-full rounded-[2rem] object-cover shadow-lift"
           />
-          <div className="card-soft absolute -bottom-6 left-4 w-56 p-4 shadow-lift md:left-8">
-            <p className="text-xs font-semibold text-muted-foreground">Featured today</p>
-            <p className="mt-1 text-sm font-bold leading-snug">{featured[0].title}</p>
-            <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3.5 w-3.5 fill-accent text-accent" /> {featured[0].rating} ·{" "}
-              {featured[0].prep}
-            </p>
-          </div>
+          {featured[0] && (
+            <div className="card-soft absolute -bottom-6 left-4 w-56 p-4 shadow-lift md:left-8">
+              <p className="text-xs font-semibold text-muted-foreground">Featured today</p>
+              <p className="mt-1 line-clamp-2 text-sm font-bold leading-snug">{featured[0].title}</p>
+              <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="h-3.5 w-3.5 fill-accent text-accent" /> {featured[0].category} ·{" "}
+                {featured[0].readTime}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -137,13 +141,19 @@ function Home() {
             See all →
           </Link>
         </div>
-        <div className="no-scrollbar mt-8 flex snap-x gap-5 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
-          {featured.map((r) => (
-            <div key={r.id} className="w-72 shrink-0 snap-start lg:w-auto">
-              <RecipeCard recipe={r} onOpen={setOpen} />
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <LoadingState label="Fetching the latest recipes…" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={retry} />
+        ) : (
+          <div className="no-scrollbar mt-8 flex snap-x gap-5 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
+            {featured.map((p) => (
+              <div key={p.id} className="w-72 shrink-0 snap-start lg:w-auto">
+                <RecipeCard post={p} onOpen={setOpen} />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-14">
@@ -170,7 +180,7 @@ function Home() {
               smooth purees too long makes lumps much harder to accept later.
             </div>
             <Button asChild variant="outline" className="mt-5 rounded-full">
-              <Link to="/journal/textures-and-speech">Read the full guide</Link>
+              <Link to="/journal">Read the full guide</Link>
             </Button>
           </div>
         </div>
@@ -179,7 +189,7 @@ function Home() {
       <section className="mx-auto max-w-7xl px-4 py-14">
         <h2 className="text-2xl md:text-3xl">As seen on Instagram</h2>
         <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {recipes.slice(4, 8).map((r) => (
+          {posts.slice(4, 8).map((r) => (
             <a
               key={r.id}
               href="https://instagram.com"
@@ -188,7 +198,7 @@ function Home() {
               className="group relative overflow-hidden rounded-2xl"
             >
               <img
-                src={r.image}
+                src={r.image ?? heroImg}
                 alt={r.title}
                 loading="lazy"
                 width={768}
@@ -225,7 +235,7 @@ function Home() {
         </form>
       </section>
 
-      <RecipeDialog recipe={open} onOpenChange={(o) => !o && setOpen(null)} />
+      <RecipeDialog post={open} onOpenChange={(o) => !o && setOpen(null)} />
     </>
   );
 }

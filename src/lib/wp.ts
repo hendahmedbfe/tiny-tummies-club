@@ -99,7 +99,7 @@ export async function fetchPosts(perPage = 24, signal?: AbortSignal): Promise<Wp
   if (cached) return cached;
 
   const request = (async () => {
-    const res = await fetch(`${WP_POSTS_ENDPOINT}&per_page=${perPage}`, { signal });
+    const res = await fetch(`${WP_POSTS_ENDPOINT}&per_page=${perPage}`, { signal: signal ?? null });
     if (!res.ok) throw new Error(`WordPress request failed (${res.status})`);
     const data = (await res.json()) as RawPost[];
     if (!Array.isArray(data)) throw new Error("Unexpected response from WordPress.");
@@ -116,10 +116,10 @@ export function clearPostsCache() {
 }
 
 export async function fetchPostBySlug(slug: string, signal?: AbortSignal): Promise<WpPost | null> {
-  const res = await fetch(`${WP_POSTS_ENDPOINT}&slug=${encodeURIComponent(slug)}`, { signal });
+  const res = await fetch(`${WP_POSTS_ENDPOINT}&slug=${encodeURIComponent(slug)}`, { signal: signal ?? null });
   if (!res.ok) throw new Error(`WordPress request failed (${res.status})`);
   const data = (await res.json()) as RawPost[];
-  return data.length ? mapPost(data[0]) : null;
+  return data[0] ? mapPost(data[0]) : null;
 }
 
 export function useWpPosts(perPage = 24) {

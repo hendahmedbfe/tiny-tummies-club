@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, Instagram, Menu, Search, X } from "lucide-react";
 import logo from "@/assets/reham-logo.png.asset.json";
+import fallbackImg from "@/assets/hero.jpg";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -12,7 +13,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { articles, products, recipes } from "@/lib/data";
+import { products } from "@/lib/data";
+import { useWpPosts } from "@/lib/wp";
 import { useFavorites } from "@/lib/favorites";
 
 const nav = [
@@ -36,6 +38,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { favorites, toggle } = useFavorites();
   const navigate = useNavigate();
+  const { posts } = useWpPosts(24);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -48,7 +51,7 @@ export function Header() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const savedRecipes = recipes.filter((r) => favorites.includes(r.id));
+  const savedRecipes = posts.filter((p) => favorites.includes(p.slug));
 
   const go = (to: string) => {
     setSearchOpen(false);
@@ -137,7 +140,7 @@ export function Header() {
                 {savedRecipes.map((r) => (
                   <div key={r.id} className="flex items-center gap-3 rounded-2xl border p-2">
                     <img
-                      src={r.image}
+                      src={r.image ?? fallbackImg}
                       alt={r.title}
                       loading="lazy"
                       width={80}
@@ -147,12 +150,12 @@ export function Header() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{r.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {r.age} · {r.prep}
+                        {r.category} · {r.readTime}
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => toggle(r.id)}
+                      onClick={() => toggle(r.slug)}
                       aria-label={`Remove ${r.title}`}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-muted"
                     >
@@ -223,16 +226,20 @@ export function Header() {
         <CommandList>
           <CommandEmpty>No matches found.</CommandEmpty>
           <CommandGroup heading="Recipes">
-            {recipes.map((r) => (
-              <CommandItem key={r.id} value={`${r.title} ${r.highlight}`} onSelect={() => go("/recipes")}>
-                {r.title}
+            {posts.map((p) => (
+              <CommandItem key={p.id} value={`${p.title} ${p.excerpt}`} onSelect={() => go("/recipes")}>
+                {p.title}
               </CommandItem>
             ))}
           </CommandGroup>
           <CommandGroup heading="Journal">
-            {articles.map((a) => (
-              <CommandItem key={a.slug} value={a.title} onSelect={() => go(`/journal/${a.slug}`)}>
-                {a.title}
+            {posts.map((p) => (
+              <CommandItem
+                key={`j-${p.id}`}
+                value={`journal ${p.title}`}
+                onSelect={() => go(`/journal/${p.slug}`)}
+              >
+                {p.title}
               </CommandItem>
             ))}
           </CommandGroup>
