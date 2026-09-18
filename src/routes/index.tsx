@@ -47,7 +47,7 @@ const stages = [
 
 function Home() {
   const [open, setOpen] = useState<WpPost | null>(null);
-  const { posts, loading, error, retry } = useWpPosts(12);
+  const { posts, loading, error, retry } = useWpPosts(24);
   const featured = posts.slice(0, 4);
 
   return (
