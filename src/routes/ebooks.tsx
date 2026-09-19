@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Download, Smartphone, Star, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { products, productCategories, type Product } from "@/lib/data";
+import { ErrorState, LoadingState } from "@/components/site/Loading";
+import { useShopProducts, type ShopProduct } from "@/lib/shop";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ebooks")({
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/ebooks")({
         property: "og:description",
         content: "Instant PDF downloads for stress-free feeding.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: EbooksPage,
@@ -52,17 +55,20 @@ const faqs = [
 ];
 
 function EbooksPage() {
+  const { products, loading, error, retry } = useShopProducts();
   const [cat, setCat] = useState("All");
-  const [checkout, setCheckout] = useState<Product | null>(null);
-  const [purchased, setPurchased] = useState(false);
-  const bestseller = products[0]!;
-  const catalog = products.filter((p) => p.id !== bestseller.id);
-  const shown = cat === "All" ? catalog : catalog.filter((p) => p.category === cat);
+  const [checkout, setCheckout] = useState<ShopProduct | null>(null);
 
-  const openCheckout = (p: Product) => {
-    setPurchased(false);
-    setCheckout(p);
-  };
+  const bestseller = products[0] ?? null;
+  const catalog = useMemo(
+    () => products.filter((p) => p.id !== bestseller?.id),
+    [products, bestseller],
+  );
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(products.flatMap((p) => p.categories))).sort()],
+    [products],
+  );
+  const shown = cat === "All" ? catalog : catalog.filter((p) => p.categories.includes(cat));
 
   return (
     <>
@@ -88,86 +94,130 @@ function EbooksPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10">
-        <div className="grid items-center gap-8 rounded-[2rem] bg-card p-6 shadow-sm md:grid-cols-2 md:p-10">
-          <div className="grid place-items-center rounded-3xl bg-rose-soft p-10">
-            <div className="w-44 rotate-[-4deg] rounded-r-xl rounded-l-sm bg-primary p-6 text-center text-primary-foreground shadow-lift">
-              <span className="text-4xl">📗</span>
-              <p className="mt-3 font-display text-sm font-bold leading-snug">{bestseller.title}</p>
-              <p className="mt-2 text-[10px] uppercase tracking-wide">Dr. Reham Emam</p>
-            </div>
-          </div>
-          <div>
-            <span className="rounded-full bg-gold-soft px-3 py-1 text-xs font-bold">Bestseller</span>
-            <h2 className="mt-4 text-2xl md:text-3xl">{bestseller.title}</h2>
-            <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold">
-              <Star className="h-4 w-4 fill-accent text-accent" /> 4.9/5 from 1,240 parents
-            </p>
-            <p className="mt-4 flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-primary">${bestseller.price}</span>
-              <span className="text-lg text-muted-foreground line-through">${bestseller.oldPrice}</span>
-            </p>
-            <ul className="mt-5 space-y-2 text-sm">
-              {[
-                "100 stage-labelled recipes from purees to family plates",
-                "Allergen swap for every recipe",
-                "Iron and texture progression planner",
-                "Freezer and batch-cooking guide",
-              ].map((f) => (
-                <li key={f} className="flex gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Button size="lg" className="mt-6 w-full rounded-full sm:w-auto" onClick={() => openCheckout(bestseller)}>
-              Buy Now – Instant PDF Access
-            </Button>
-          </div>
+      {loading ? (
+        <LoadingState label="Loading the shop…" />
+      ) : error ? (
+        <div className="py-12">
+          <ErrorState message={error} onRetry={retry} />
         </div>
-      </section>
+      ) : (
+        <>
+          {bestseller && (
+            <section className="mx-auto max-w-7xl px-4 py-10">
+              <div className="grid items-center gap-8 rounded-[2rem] bg-card p-6 shadow-sm md:grid-cols-2 md:p-10">
+                <div className="grid place-items-center rounded-3xl bg-rose-soft p-6">
+                  {bestseller.image ? (
+                    <img
+                      src={bestseller.image}
+                      alt={bestseller.title}
+                      loading="lazy"
+                      className="max-h-80 w-auto rounded-2xl object-contain shadow-lift"
+                    />
+                  ) : (
+                    <span className="text-6xl">📗</span>
+                  )}
+                </div>
+                <div>
+                  <span className="rounded-full bg-gold-soft px-3 py-1 text-xs font-bold">Bestseller</span>
+                  <h2 className="mt-4 text-2xl md:text-3xl">{bestseller.title}</h2>
+                  {bestseller.rating > 0 && (
+                    <p className="mt-2 inline-flex items-center gap-1 text-sm font-semibold">
+                      <Star className="h-4 w-4 fill-accent text-accent" /> {bestseller.rating}/5 from{" "}
+                      {bestseller.reviewCount} parents
+                    </p>
+                  )}
+                  <p className="mt-4 flex items-baseline gap-3">
+                    <span className="text-3xl font-bold text-primary">{bestseller.priceLabel}</span>
+                    {bestseller.regularPriceLabel && (
+                      <span className="text-lg text-muted-foreground line-through">
+                        {bestseller.regularPriceLabel}
+                      </span>
+                    )}
+                  </p>
+                  {bestseller.blurb && (
+                    <p className="mt-4 text-sm text-muted-foreground">{bestseller.blurb}</p>
+                  )}
+                  <ul className="mt-5 space-y-2 text-sm">
+                    {[
+                      "Stage-labelled recipes from purees to family plates",
+                      "Allergen swap guidance throughout",
+                      "Iron and texture progression planner",
+                      "Freezer and batch-cooking notes",
+                    ].map((f) => (
+                      <li key={f} className="flex gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    size="lg"
+                    className="mt-6 w-full rounded-full sm:w-auto"
+                    onClick={() => setCheckout(bestseller)}
+                  >
+                    Buy Now – Instant PDF Access
+                  </Button>
+                </div>
+              </div>
+            </section>
+          )}
 
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-          {productCategories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCat(c)}
-              className={cn(
-                "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                cat === c
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:border-primary",
-              )}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+          <section className="mx-auto max-w-7xl px-4 py-8">
+            {categories.length > 1 && (
+              <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCat(c)}
+                    className={cn(
+                      "shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                      cat === c
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "bg-card text-muted-foreground hover:border-primary",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {shown.map((p) => (
-            <div key={p.id} className="card-soft flex flex-col p-6 transition-shadow hover:shadow-lift">
-              <span className="grid h-24 place-items-center rounded-2xl bg-muted text-5xl">{p.emoji}</span>
-              <span className="mt-4 text-xs font-semibold text-secondary">{p.category}</span>
-              <h3 className="mt-1 text-lg leading-snug">{p.title}</h3>
-              <p className="mt-2 flex-1 text-sm text-muted-foreground">{p.blurb}</p>
-              <p className="mt-4 flex items-center gap-2 text-xl font-bold text-primary">
-                ${p.price}
-                {p.oldPrice && (
-                  <span className="text-sm font-normal text-muted-foreground line-through">
-                    ${p.oldPrice}
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map((p) => (
+                <div key={p.id} className="card-soft flex flex-col p-6 transition-shadow hover:shadow-lift">
+                  <span className="grid h-44 place-items-center overflow-hidden rounded-2xl bg-muted">
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    ) : (
+                      <span className="text-5xl">📘</span>
+                    )}
                   </span>
-                )}
-              </p>
-              <Button className="mt-4 rounded-full" onClick={() => openCheckout(p)}>
-                Buy Now
-              </Button>
+                  <span className="mt-4 text-xs font-semibold text-secondary">{p.category}</span>
+                  <h3 className="mt-1 text-lg leading-snug">{p.title}</h3>
+                  {p.blurb && <p className="mt-2 flex-1 text-sm text-muted-foreground">{p.blurb}</p>}
+                  <p className="mt-4 flex items-center gap-2 text-xl font-bold text-primary">
+                    {p.priceLabel}
+                    {p.regularPriceLabel && (
+                      <span className="text-sm font-normal text-muted-foreground line-through">
+                        {p.regularPriceLabel}
+                      </span>
+                    )}
+                  </p>
+                  <Button className="mt-4 rounded-full" onClick={() => setCheckout(p)}>
+                    Buy Now
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
+        </>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -209,30 +259,29 @@ function EbooksPage() {
       <Dialog open={!!checkout} onOpenChange={(o) => !o && setCheckout(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{purchased ? "Your download is ready" : "Checkout"}</DialogTitle>
+            <DialogTitle>Complete your purchase</DialogTitle>
           </DialogHeader>
-          {checkout && !purchased && (
+          {checkout && (
             <div className="space-y-4">
               <div className="flex items-center justify-between rounded-2xl bg-muted p-4 text-sm">
                 <span className="pr-4 font-semibold">{checkout.title}</span>
-                <span className="font-bold text-primary">${checkout.price}</span>
+                <span className="font-bold text-primary">{checkout.priceLabel}</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                This is a demo checkout — no payment is taken and no card details are collected.
+                Checkout is handled securely on babyfoodessentials.com, where your PDF is delivered
+                instantly after payment.
               </p>
-              <Button className="w-full rounded-full" onClick={() => setPurchased(true)}>
-                Pay ${checkout.price} & download
+              <Button asChild className="w-full rounded-full">
+                <a href={checkout.permalink} target="_blank" rel="noreferrer">
+                  Continue to secure checkout
+                </a>
               </Button>
-            </div>
-          )}
-          {purchased && (
-            <div className="space-y-4 text-center">
-              <span className="text-5xl">🎉</span>
-              <p className="text-sm text-muted-foreground">
-                Thank you! Your PDF would normally download instantly and arrive by email.
-              </p>
-              <Button variant="secondary" className="w-full rounded-full" onClick={() => setCheckout(null)}>
-                Close
+              <Button
+                variant="secondary"
+                className="w-full rounded-full"
+                onClick={() => setCheckout(null)}
+              >
+                Keep browsing
               </Button>
             </div>
           )}
