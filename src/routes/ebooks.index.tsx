@@ -13,7 +13,7 @@ import { ErrorState, LoadingState } from "@/components/site/Loading";
 import { useShopProducts, type ShopProduct } from "@/lib/shop";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/ebooks")({
+export const Route = createFileRoute("/ebooks/")({
   head: () => ({
     meta: [
       { title: "E-Books & Guides — Doctor-Crafted Meal Planners" },

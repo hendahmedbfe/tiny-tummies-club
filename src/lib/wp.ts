@@ -45,6 +45,47 @@ export function stripHtml(input: string) {
     .trim();
 }
 
+export function slugifyHeading(input: string) {
+  return stripHtml(input)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+/**
+ * Cleans WordPress content for in-app rendering:
+ * - gives every heading a stable id so table-of-contents anchors work
+ * - rewrites external table-of-contents links (e.g. perplexity.ai) to local hashes
+ * - removes any remaining perplexity links entirely, keeping their text
+ */
+export function sanitizeContent(html: string) {
+  let out = html.replace(
+    /<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi,
+    (match, level: string, attrs: string, inner: string) => {
+      if (/\sid=/i.test(attrs)) return match;
+      const id = slugifyHeading(inner);
+      if (!id) return match;
+      return `<h${level}${attrs} id="${id}">${inner}</h${level}>`;
+    },
+  );
+
+  // external links that carry a hash -> local anchor
+  out = out.replace(
+    /<a\s([^>]*)href=(["'])https?:\/\/[^"'#]*#([^"']+)\2([^>]*)>/gi,
+    (_match, before: string, _q: string, hash: string) =>
+      `<a ${before}href="#${hash}">`,
+  );
+
+  // any leftover perplexity link -> plain text
+  out = out.replace(
+    /<a\s[^>]*perplexity[^>]*>([\s\S]*?)<\/a>/gi,
+    (_m, text: string) => text,
+  );
+
+  return out;
+}
+
 function readTimeOf(html: string) {
   const words = stripHtml(html).split(" ").filter(Boolean).length;
   return `${Math.max(1, Math.round(words / 200))} min read`;
