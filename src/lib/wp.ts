@@ -106,7 +106,7 @@ type RawPost = {
 };
 
 export function mapPost(raw: RawPost): WpPost {
-  const contentHtml = raw.content?.rendered ?? "";
+  const contentHtml = sanitizeContent(raw.content?.rendered ?? "");
   const media = raw._embedded?.["wp:featuredmedia"]?.[0]?.source_url ?? null;
   const categories =
     raw._embedded?.["wp:term"]
