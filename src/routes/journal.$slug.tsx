@@ -31,7 +31,7 @@ export const Route = createFileRoute("/journal/$slug")({
 function ArticlePage() {
   const { slug } = Route.useParams();
   const { post, loading, error, retry } = useWpPost(slug);
-  const { posts } = useWpPosts(24);
+  const { posts } = useWpPosts();
   const [open, setOpen] = useState<WpPost | null>(null);
 
   const related = post

@@ -40,7 +40,7 @@ function Avatar() {
 }
 
 function JournalPage() {
-  const { posts, loading, error, retry } = useWpPosts(24);
+  const { posts, loading, error, retry } = useWpPosts();
   const [cat, setCat] = useState("All");
 
   const categories = useMemo(

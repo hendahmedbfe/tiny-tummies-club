@@ -13,7 +13,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { products } from "@/lib/data";
+import { useShopProducts } from "@/lib/shop";
 import { useWpPosts } from "@/lib/wp";
 import { useFavorites } from "@/lib/favorites";
 
@@ -38,7 +38,8 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { favorites, toggle } = useFavorites();
   const navigate = useNavigate();
-  const { posts } = useWpPosts(24);
+  const { posts } = useWpPosts();
+  const { products } = useShopProducts();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
