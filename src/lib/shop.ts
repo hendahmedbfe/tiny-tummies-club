@@ -93,6 +93,11 @@ export function mapProduct(raw: RawProduct): ShopProduct {
   };
 }
 
+/** WooCommerce checkout with the product pre-added to the cart. */
+export function checkoutUrl(productId: number) {
+  return `https://babyfoodessentials.com/checkout/?add-to-cart=${productId}`;
+}
+
 let cached: Promise<ShopProduct[]> | null = null;
 
 export async function fetchProducts(signal?: AbortSignal): Promise<ShopProduct[]> {

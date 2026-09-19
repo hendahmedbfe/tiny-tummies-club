@@ -80,6 +80,7 @@ function ArticlePage() {
 
             <div
               className={`mt-8 ${wpProse}`}
+              onClick={handleAnchorClick}
               dangerouslySetInnerHTML={{ __html: post.contentHtml }}
             />
           </>

@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, Heart } from "lucide-react";
+import { Clock, Heart } from "lucide-react";
 import fallbackImg from "@/assets/hero.jpg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
