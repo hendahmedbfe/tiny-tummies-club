@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState, type MouseEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Clock } from "lucide-react";
 import fallbackImg from "@/assets/hero.jpg";
@@ -33,6 +33,20 @@ function ArticlePage() {
   const { post, loading, error, retry } = useWpPost(slug);
   const { posts } = useWpPosts();
   const [open, setOpen] = useState<WpPost | null>(null);
+
+  // Table-of-contents links scroll smoothly to the matching heading in this page.
+  const handleAnchorClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    const anchor = (event.target as HTMLElement).closest("a");
+    const href = anchor?.getAttribute("href");
+    if (!href?.startsWith("#")) return;
+    event.preventDefault();
+    const id = decodeURIComponent(href.slice(1));
+    const target = document.getElementById(id);
+    if (!target) return;
+    const top = target.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top, behavior: "smooth" });
+    window.history.replaceState(null, "", `#${id}`);
+  }, []);
 
   const related = post
     ? posts.filter((p) => p.slug !== post.slug && p.categories.some((c) => post.categories.includes(c))).slice(0, 3)
