@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as EbooksRouteImport } from './routes/ebooks'
 import { Route as RecipesRouteImport } from './routes/recipes'
+import { Route as EbooksIndexRouteImport } from './routes/ebooks.index'
 import { Route as JournalIndexRouteImport } from './routes/journal.index'
 import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 
@@ -26,14 +26,14 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EbooksRoute = EbooksRouteImport.update({
-  id: '/ebooks',
-  path: '/ebooks',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RecipesRoute = RecipesRouteImport.update({
   id: '/recipes',
   path: '/recipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EbooksIndexRoute = EbooksIndexRouteImport.update({
+  id: '/ebooks/',
+  path: '/ebooks/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalIndexRoute = JournalIndexRouteImport.update({
@@ -50,50 +50,50 @@ const JournalSlugRoute = JournalSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ebooks': typeof EbooksRoute
   '/recipes': typeof RecipesRoute
   '/journal/$slug': typeof JournalSlugRoute
+  '/ebooks/': typeof EbooksIndexRoute
   '/journal/': typeof JournalIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ebooks': typeof EbooksRoute
   '/recipes': typeof RecipesRoute
   '/journal/$slug': typeof JournalSlugRoute
+  '/ebooks': typeof EbooksIndexRoute
   '/journal': typeof JournalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/ebooks': typeof EbooksRoute
   '/recipes': typeof RecipesRoute
   '/journal/$slug': typeof JournalSlugRoute
+  '/ebooks/': typeof EbooksIndexRoute
   '/journal/': typeof JournalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/about' | '/ebooks' | '/recipes' | '/journal/$slug' | '/journal/'
+    '/' | '/about' | '/recipes' | '/journal/$slug' | '/ebooks/' | '/journal/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/ebooks' | '/recipes' | '/journal/$slug' | '/journal'
+  to: '/' | '/about' | '/recipes' | '/journal/$slug' | '/ebooks' | '/journal'
   id:
     | '__root__'
     | '/'
     | '/about'
-    | '/ebooks'
     | '/recipes'
     | '/journal/$slug'
+    | '/ebooks/'
     | '/journal/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  EbooksRoute: typeof EbooksRoute
   RecipesRoute: typeof RecipesRoute
   JournalSlugRoute: typeof JournalSlugRoute
+  EbooksIndexRoute: typeof EbooksIndexRoute
   JournalIndexRoute: typeof JournalIndexRoute
 }
 
@@ -113,18 +113,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ebooks': {
-      id: '/ebooks'
-      path: '/ebooks'
-      fullPath: '/ebooks'
-      preLoaderRoute: typeof EbooksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/recipes': {
       id: '/recipes'
       path: '/recipes'
       fullPath: '/recipes'
       preLoaderRoute: typeof RecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ebooks/': {
+      id: '/ebooks/'
+      path: '/ebooks'
+      fullPath: '/ebooks/'
+      preLoaderRoute: typeof EbooksIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal/': {
@@ -147,9 +147,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  EbooksRoute: EbooksRoute,
   RecipesRoute: RecipesRoute,
   JournalSlugRoute: JournalSlugRoute,
+  EbooksIndexRoute: EbooksIndexRoute,
   JournalIndexRoute: JournalIndexRoute,
 }
 export const routeTree = rootRouteImport

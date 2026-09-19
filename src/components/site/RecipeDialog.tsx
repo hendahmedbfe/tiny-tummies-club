@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, Heart } from "lucide-react";
+import { Clock, Heart } from "lucide-react";
 import fallbackImg from "@/assets/hero.jpg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -60,11 +60,6 @@ export function RecipeDialog({
           >
             <Heart className={cn("mr-2 h-4 w-4", saved && "fill-current")} />
             {saved ? "Saved to favourites" : "Save to favourites"}
-          </Button>
-          <Button asChild variant="outline" className="flex-1 rounded-full">
-            <a href={post.link} target="_blank" rel="noreferrer">
-              View on the blog <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
           </Button>
         </div>
       </DialogContent>
