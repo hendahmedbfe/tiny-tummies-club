@@ -38,7 +38,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { favorites, toggle } = useFavorites();
   const navigate = useNavigate();
-  const { posts } = useWpPosts(24);
+  const { posts } = useWpPosts();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
