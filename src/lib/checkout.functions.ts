@@ -14,7 +14,7 @@ export const createSignedCheckoutUrl = createServerFn({ method: "POST" })
     const items = data.ids.join(",");
 
     if (!secret) {
-      return { url: `https://babyfoodessentials.com/cart/?add-to-cart=${items}` };
+      return { url: `https://babyfoodessentials.com/checkout/?add-to-cart=${items}` };
     }
 
     const expires = Math.floor(Date.now() / 1000) + 60 * 60;
