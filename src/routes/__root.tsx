@@ -15,6 +15,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { MobileNav } from "@/components/site/MobileNav";
 import { FavoritesProvider } from "@/lib/favorites";
+import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
 
 
@@ -130,16 +131,18 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <FavoritesProvider>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1 pb-20 lg:pb-0">
-            {/* Required: nested routes render here. */}
-            <Outlet />
-          </main>
-          <Footer />
-          <MobileNav />
-        </div>
-        <Toaster position="top-center" />
+        <CartProvider>
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1 pb-20 lg:pb-0">
+              {/* Required: nested routes render here. */}
+              <Outlet />
+            </main>
+            <Footer />
+            <MobileNav />
+          </div>
+          <Toaster position="top-center" />
+        </CartProvider>
       </FavoritesProvider>
     </QueryClientProvider>
   );

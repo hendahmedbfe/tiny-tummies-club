@@ -1,7 +1,8 @@
+import { DiscountBadge, PriceTag } from "@/components/site/PriceTag";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Heart, Instagram, Menu, Search, X } from "lucide-react";
-import logo from "@/assets/reham-logo.png.asset.json";
+import { Heart, Instagram, Menu, Search, ShoppingCart, Trash2, X } from "lucide-react";
+import logo from "@/assets/reham-emam-logo-transparent.png.asset.json";
 import fallbackImg from "@/assets/hero.jpg";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -16,11 +17,15 @@ import {
 import { useShopProducts } from "@/lib/shop";
 import { useWpPosts } from "@/lib/wp";
 import { useFavorites } from "@/lib/favorites";
+import { syncToOldCart, useCart } from "@/lib/cart";
+import { createSignedCheckoutUrl } from "@/lib/checkout.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+
 
 const nav = [
   { to: "/", label: "Home" },
-  { to: "/recipes", label: "Recipes Hub" },
-  { to: "/journal", label: "The Feeding Journal" },
+  { to: "/blogs", label: "Blog" },
   { to: "/ebooks", label: "E-Books & Guides" },
   { to: "/about", label: "About Dr. Reham" },
 ] as const;
@@ -37,7 +42,12 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { favorites, toggle } = useFavorites();
+  const { items: cartItems, removeItem, total } = useCart();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const startCheckout = useServerFn(createSignedCheckoutUrl);
   const navigate = useNavigate();
+
+
   const { posts } = useWpPosts();
   const { products } = useShopProducts();
 
@@ -68,7 +78,7 @@ export function Header() {
             alt="Reham Emam Kids Clinic"
             width={56}
             height={56}
-            className="h-11 w-11 shrink-0 object-contain"
+            className="h-14 w-14 shrink-0 rounded-full object-contain sm:h-16 sm:w-16"
           />
           <span className="min-w-0">
             <span className="block truncate font-display text-base font-bold leading-tight">
@@ -99,7 +109,7 @@ export function Header() {
             className="hidden items-center gap-2 rounded-full border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted sm:flex"
           >
             <Search className="h-4 w-4" />
-            <span className="hidden md:inline">Search recipes</span>
+            <span className="hidden md:inline">Search blogs</span>
             <kbd className="hidden rounded border bg-muted px-1.5 text-[10px] font-semibold md:inline">
               ⌘K
             </kbd>
@@ -168,8 +178,83 @@ export function Header() {
             </SheetContent>
           </Sheet>
 
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button type="button" variant="ghost" size="icon" aria-label="Open shopping cart" className="relative rounded-full">
+                <ShoppingCart className="h-5 w-5" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[10px] font-bold text-secondary-foreground">
+                    {cartItems.length}
+                  </span>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="flex w-full flex-col sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle>Your cart ({cartItems.length})</SheetTitle>
+              </SheetHeader>
+              {cartItems.length === 0 ? (
+                <div className="grid flex-1 place-items-center px-6 text-center">
+                  <div>
+                    <ShoppingCart className="mx-auto h-10 w-10 text-muted-foreground" />
+                    <p className="mt-3 font-semibold">Your cart is empty</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Add a guide to keep it ready for checkout.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+                    {cartItems.map((item) => (
+                      <article key={item.id} className="flex gap-3 rounded-lg border bg-card p-3">
+                        <div className="grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">
+                          {item.image ? <img src={item.image} alt="" className="h-full w-full object-contain" /> : <span>📘</span>}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm font-semibold">{item.title}</p>
+                          <p className="mt-1 flex flex-wrap items-center gap-2">
+                            <PriceTag product={item} size="sm" />
+                            <DiscountBadge product={item} />
+                          </p>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(item.id)} aria-label={`Remove ${item.title}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="border-t p-4">
+                    <div className="mb-3 flex items-center justify-between font-semibold">
+                      <span>Cart total</span>
+                      <span>€{total.toFixed(2)}</span>
+                    </div>
+                    <p className="mb-3 text-xs text-muted-foreground">Secure payment for every guide in your cart.</p>
+                    <Button
+                      type="button"
+                      className="w-full rounded-full"
+                      disabled={isCheckingOut}
+                      onClick={async () => {
+                        setIsCheckingOut(true);
+                        try {
+                          syncToOldCart(cartItems);
+                          const { url } = await startCheckout({ data: { ids: cartItems.map((i) => i.id) } });
+                          window.location.href = url;
+                        } catch {
+                          setIsCheckingOut(false);
+                          toast.error("Checkout could not start. Please try again.");
+                        }
+                      }}
+                    >
+                      {isCheckingOut ? "Opening checkout…" : `Checkout / Pay (€${total.toFixed(2)})`}
+                    </Button>
+
+                  </div>
+                </>
+              )}
+            </SheetContent>
+          </Sheet>
+
           <a
-            href="https://instagram.com"
+            href="https://www.instagram.com/babyfoodessentials/?__pwa=1"
             target="_blank"
             rel="noreferrer"
             aria-label="Instagram"
@@ -178,7 +263,7 @@ export function Header() {
             <Instagram className="h-5 w-5" />
           </a>
           <a
-            href="https://pinterest.com"
+            href="https://www.pinterest.com/Drrehamemam/"
             target="_blank"
             rel="noreferrer"
             aria-label="Pinterest"
@@ -186,10 +271,6 @@ export function Header() {
           >
             <PinterestIcon className="h-5 w-5" />
           </a>
-
-          <Button asChild className="hidden rounded-full lg:inline-flex">
-            <Link to="/ebooks">Get Free Meal Planner</Link>
-          </Button>
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
@@ -223,23 +304,12 @@ export function Header() {
       </div>
 
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput placeholder="Search recipes, articles and guides..." />
+        <CommandInput placeholder="Search blogs and guides..." />
         <CommandList>
           <CommandEmpty>No matches found.</CommandEmpty>
-          <CommandGroup heading="Recipes">
+          <CommandGroup heading="Blogs">
             {posts.map((p) => (
-              <CommandItem key={p.id} value={`${p.title} ${p.excerpt}`} onSelect={() => go("/recipes")}>
-                {p.title}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          <CommandGroup heading="Journal">
-            {posts.map((p) => (
-              <CommandItem
-                key={`j-${p.id}`}
-                value={`journal ${p.title}`}
-                onSelect={() => go(`/journal/${p.slug}`)}
-              >
+              <CommandItem key={p.id} value={`${p.title} ${p.excerpt}`} onSelect={() => go("/blogs")}>
                 {p.title}
               </CommandItem>
             ))}

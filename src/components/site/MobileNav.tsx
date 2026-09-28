@@ -1,10 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Home, NotebookPen, ShoppingBag, UserRound } from "lucide-react";
+import { BookOpen, Home, ShoppingBag, UserRound } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Home, exact: true },
-  { to: "/recipes", label: "Recipes", icon: BookOpen, exact: false },
-  { to: "/journal", label: "Journal", icon: NotebookPen, exact: false },
+  { to: "/blogs", label: "Blog", icon: BookOpen, exact: false },
   { to: "/ebooks", label: "Guides", icon: ShoppingBag, exact: false },
   { to: "/about", label: "Doctor", icon: UserRound, exact: false },
 ] as const;
@@ -12,7 +11,7 @@ const items = [
 export function MobileNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-card/95 backdrop-blur lg:hidden">
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-4">
         {items.map(({ to, label, icon: Icon, exact }) => (
           <li key={to}>
             <Link

@@ -1,12 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram } from "lucide-react";
-import logo from "@/assets/reham-logo.png.asset.json";
+import logo from "@/assets/reham-emam-logo-transparent.png.asset.json";
+import googlePlayBadge from "@/assets/google-play-badge.png.asset.json";
+
+const appUrl = "https://play.google.com/store/apps/details?id=com.babyfoodessentials.app";
 
 export function Footer() {
   return (
     <footer className="mt-20 border-t bg-card">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-2 lg:grid-cols-4">
-        <div>
+        <div className="flex items-center justify-center">
           <img
             src={logo.url}
             alt="Reham Emam Kids Clinic"
@@ -15,17 +18,13 @@ export function Footer() {
             height={120}
             className="h-16 w-16 object-contain"
           />
-          <p className="mt-4 text-sm text-muted-foreground">
-            Baby Food Essentials is the parent-facing kitchen of Reham Emam Kids Clinic — evidence-based
-            infant nutrition, texture progression and speech-friendly feeding.
-          </p>
         </div>
+
 
         <div>
           <h4 className="text-sm font-bold">Quick links</h4>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/recipes" className="hover:text-primary">Recipes Hub</Link></li>
-            <li><Link to="/journal" className="hover:text-primary">The Feeding Journal</Link></li>
+            <li><Link to="/blogs" className="hover:text-primary">Blogs</Link></li>
             <li><Link to="/ebooks" className="hover:text-primary">E-Books & Guides</Link></li>
             <li><Link to="/about" className="hover:text-primary">About Dr. Reham</Link></li>
           </ul>
@@ -43,14 +42,32 @@ export function Footer() {
           <h4 className="text-sm font-bold">Follow along</h4>
           <div className="mt-4 space-y-2 text-sm text-muted-foreground">
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/babyfoodessentials/?__pwa=1"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 hover:text-primary"
             >
-              <Instagram className="h-4 w-4" /> @rehamemamkidsclinic
+              <Instagram className="h-4 w-4" /> @babyfoodessentials
             </a>
-            <p>hello@babyfoodessentials.com</p>
+            <a href="mailto:babyfoodessentials@gmail.com" className="block hover:text-primary">
+              babyfoodessentials@gmail.com
+            </a>
+            <a
+              href={appUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Get Baby Food Essentials on Google Play"
+              className="mt-4 inline-block"
+            >
+              <img
+                src={googlePlayBadge.url}
+                alt="Get it on Google Play"
+                loading="lazy"
+                width={646}
+                height={192}
+                className="h-auto w-40"
+              />
+            </a>
           </div>
         </div>
       </div>

@@ -17,6 +17,8 @@ export const Route = createFileRoute("/about")({
         property: "og:description",
         content: "Physician, paediatric nutrition specialist and advocate for happy mealtimes.",
       },
+      { property: "og:type", content: "profile" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AboutPage,
@@ -58,22 +60,22 @@ function AboutPage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full">
-              <Link to="/recipes">Explore the recipes</Link>
+              <Link to="/blogs">Explore the blogs</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full">
               <Link to="/ebooks">See the guides</Link>
             </Button>
           </div>
         </div>
-        <div className="relative">
+        <div className="relative mx-auto w-full max-w-md">
           <img
             src={doctorImg}
             alt="Dr. Reham Emam"
             width={896}
             height={1152}
-            className="w-full rounded-[2rem] object-cover shadow-lift"
+            className="w-3/4 block mx-auto md:ml-auto md:mr-0 rounded-[2rem] object-cover shadow-lift"
           />
-          <span className="card-soft absolute bottom-5 left-5 px-4 py-2 text-sm font-semibold shadow-lift">
+          <span className="card-soft absolute left-1/2 -translate-x-1/2 px-4 py-2 text-sm font-semibold shadow-lift">
             ★ Trusted by Thousands
           </span>
         </div>
@@ -128,13 +130,13 @@ function AboutPage() {
 
       <section className="mx-auto max-w-7xl px-4 py-10">
         <a
-          href="https://instagram.com"
+          href="https://www.instagram.com/babyfoodessentials/?__pwa=1"
           target="_blank"
           rel="noreferrer"
           className="card-soft flex flex-col items-center gap-3 p-8 text-center transition-shadow hover:shadow-lift"
         >
           <Instagram className="h-8 w-8 text-primary" />
-          <h3 className="text-xl">Follow @rehamemamkidsclinic</h3>
+          <h3 className="text-xl">Follow @babyfoodessentials</h3>
           <p className="text-sm text-muted-foreground">
             Daily texture demos, 60-second recipes and myth-busting reels.
           </p>

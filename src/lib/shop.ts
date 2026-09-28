@@ -12,14 +12,17 @@ export type ShopProduct = {
   price: number;
   regularPrice: number | null;
   onSale: boolean;
+  discountPercent: number;
   priceLabel: string;
   regularPriceLabel: string | null;
   blurb: string;
   descriptionHtml: string;
+  fullDescriptionHtml: string;
   image: string | null;
   rating: number;
   reviewCount: number;
   permalink: string;
+  paymentUrl: string;
 };
 
 type RawPrices = {
@@ -45,6 +48,7 @@ type RawProduct = {
   prices?: RawPrices;
   images?: { src?: string; thumbnail?: string }[];
   categories?: { name?: string }[];
+  add_to_cart?: { url?: string };
 };
 
 function toAmount(raw: string | undefined, minorUnit: number) {
@@ -63,6 +67,26 @@ function formatAmount(amount: number, prices: RawPrices) {
   return `${prefix}${body}${suffix}`.trim();
 }
 
+function sanitizeProductDescription(html: string) {
+  const isPaymentPrompt = (value: string) =>
+    /pay\s*with\s*card|apple\s*pay|card\s*\/\s*apple\s*pay/i.test(stripHtml(value));
+  const isPaymentLink = (attrs: string, content: string) =>
+    /lemonsqueezy\.com|\/checkout\/buy\//i.test(attrs) || isPaymentPrompt(content);
+
+  return html
+    .replace(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/gi, (heading) =>
+      isPaymentPrompt(heading) ? "" : heading,
+    )
+    .replace(
+      /<(p|div)\b[^>]*>\s*<a\b([^>]*)>([\s\S]*?)<\/a>\s*<\/\1>/gi,
+      (block, _tag: string, attrs: string, content: string) =>
+        isPaymentLink(attrs, content) ? "" : block,
+    )
+    .replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (anchor, attrs: string, content: string) =>
+      isPaymentLink(attrs, content) ? "" : anchor,
+    );
+}
+
 export function mapProduct(raw: RawProduct): ShopProduct {
   const prices = raw.prices ?? {};
   const minorUnit = prices.currency_minor_unit ?? 2;
@@ -71,7 +95,7 @@ export function mapProduct(raw: RawProduct): ShopProduct {
   const categories = (raw.categories ?? [])
     .map((c) => (c.name ? decodeEntities(c.name) : null))
     .filter((c): c is string => !!c);
-  const descriptionHtml = raw.short_description || raw.description || "";
+  const descriptionHtml = sanitizeProductDescription(raw.short_description || raw.description || "");
 
   return {
     id: raw.id,
@@ -81,15 +105,18 @@ export function mapProduct(raw: RawProduct): ShopProduct {
     category: categories[0] ?? "Guides",
     price,
     regularPrice: regular && regular > price ? regular : null,
-    onSale: !!raw.on_sale,
+    onSale: !!(regular && regular > price),
+    discountPercent: regular && regular > price ? Math.round((1 - price / regular) * 100) : 0,
     priceLabel: formatAmount(price, prices),
     regularPriceLabel: regular && regular > price ? formatAmount(regular, prices) : null,
     blurb: stripHtml(descriptionHtml).slice(0, 180),
     descriptionHtml,
+    fullDescriptionHtml: sanitizeProductDescription(raw.description || raw.short_description || ""),
     image: raw.images?.[0]?.src ?? null,
     rating: Number(raw.average_rating ?? 0) || 0,
     reviewCount: raw.review_count ?? 0,
     permalink: raw.permalink ?? "https://babyfoodessentials.com/shop/",
+    paymentUrl: checkoutUrl(raw.id),
   };
 }
 
@@ -99,9 +126,11 @@ export function checkoutUrl(productId: number) {
 }
 
 let cached: Promise<ShopProduct[]> | null = null;
+let cachedAt = 0;
+const CACHE_MS = 2 * 60 * 1000;
 
 export async function fetchProducts(signal?: AbortSignal): Promise<ShopProduct[]> {
-  if (cached) return cached;
+  if (cached && Date.now() - cachedAt < CACHE_MS) return cached;
 
   const request = (async () => {
     const all: RawProduct[] = [];
@@ -111,6 +140,7 @@ export async function fetchProducts(signal?: AbortSignal): Promise<ShopProduct[]
     do {
       const res = await fetch(`${WC_PRODUCTS_ENDPOINT}?per_page=100&page=${page}`, {
         signal: signal ?? null,
+        cache: "no-store",
       });
       if (!res.ok) throw new Error(`Shop request failed (${res.status})`);
       const data = (await res.json()) as RawProduct[];
@@ -127,6 +157,7 @@ export async function fetchProducts(signal?: AbortSignal): Promise<ShopProduct[]
   })();
 
   cached = request;
+  cachedAt = Date.now();
   request.catch(() => {
     cached = null;
   });

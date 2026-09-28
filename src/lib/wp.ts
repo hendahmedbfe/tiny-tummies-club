@@ -55,36 +55,76 @@ export function slugifyHeading(input: string) {
 
 /**
  * Cleans WordPress content for in-app rendering:
- * - gives every heading a stable id so table-of-contents anchors work
- * - rewrites external table-of-contents links (e.g. perplexity.ai) to local hashes
- * - removes any remaining perplexity links entirely, keeping their text
+ * - gives every heading (h2-h4) a stable id so table-of-contents anchors work
+ * - rewrites table-of-contents links to local hashes, matching by hash or by link text
+ * - removes every perplexity link entirely, keeping only its text
+ * - rewrites links back to the WordPress site into in-app routes
  */
 export function sanitizeContent(html: string) {
+  // 1. Ensure every heading has an id, and remember the ids we can target.
+  const headingIds = new Set<string>();
+  const textToId = new Map<string, string>();
+
   let out = html.replace(
-    /<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi,
+    /<h([2-4])([^>]*)>([\s\S]*?)<\/h\1>/gi,
     (match, level: string, attrs: string, inner: string) => {
-      if (/\sid=/i.test(attrs)) return match;
-      const id = slugifyHeading(inner);
-      if (!id) return match;
-      return `<h${level}${attrs} id="${id}">${inner}</h${level}>`;
+      const textSlug = slugifyHeading(inner);
+      const existing = /\sid=(["'])([^"']+)\1/i.exec(attrs)?.[2];
+      if (existing) {
+        headingIds.add(existing);
+        if (textSlug) textToId.set(textSlug, existing);
+        return match;
+      }
+
+      if (!textSlug) return match;
+      headingIds.add(textSlug);
+      textToId.set(textSlug, textSlug);
+      return `<h${level}${attrs} id="${textSlug}">${inner}</h${level}>`;
     },
   );
 
-  // external links that carry a hash -> local anchor
+  // 2. Rewrite anchors: keep only links that resolve to a heading in this page.
   out = out.replace(
-    /<a\s([^>]*)href=(["'])https?:\/\/[^"'#]*#([^"']+)\2([^>]*)>/gi,
-    (_match, before: string, _q: string, hash: string) =>
-      `<a ${before}href="#${hash}">`,
-  );
+    /<a\s([^>]*)>([\s\S]*?)<\/a>/gi,
+    (match, attrs: string, text: string) => {
+      const hrefMatch = /href=(["'])([^"']*)\1/i.exec(attrs);
+      const href = hrefMatch?.[2] ?? "";
+      const isPerplexity = /perplexity\.ai/i.test(attrs);
+      const hashIndex = href.indexOf("#");
+      const hash = hashIndex >= 0 ? decodeURIComponent(href.slice(hashIndex + 1)) : "";
 
-  // any leftover perplexity link -> plain text
-  out = out.replace(
-    /<a\s[^>]*perplexity[^>]*>([\s\S]*?)<\/a>/gi,
-    (_m, text: string) => text,
+      // Resolve an in-page target: by hash id first, then by the link's own text.
+      let target = "";
+      if (hash && headingIds.has(hash)) target = hash;
+      if (!target && hash && textToId.has(hash)) target = textToId.get(hash) as string;
+      if (!target) {
+        const bySlug = textToId.get(slugifyHeading(text));
+        if (bySlug && (hash || isPerplexity || href.startsWith("#"))) target = bySlug;
+      }
+      if (target) return `<a href="#${target}">${text}</a>`;
+
+      // Anything still pointing at perplexity (or a bare "#") loses its link.
+      if (isPerplexity || !href || href === "#") return text;
+
+      // Links back to the WordPress site become in-app routes.
+      const wpProduct = /babyfoodessentials\.com\/product\/([^/"'?#]+)/i.exec(href);
+      if (wpProduct) return `<a href="/ebooks/${wpProduct[1]}">${text}</a>`;
+      if (/babyfoodessentials\.com/i.test(href)) {
+        const slug = href
+          .replace(/^https?:\/\/[^/]+/i, "")
+          .replace(/[?#].*$/, "")
+          .replace(/^\/|\/$/g, "");
+        if (!slug || /^(shop|checkout|cart|blog)$/i.test(slug)) return text;
+        return `<a href="/blogs">${text}</a>`;
+      }
+
+      return match;
+    },
   );
 
   return out;
 }
+
 
 function readTimeOf(html: string) {
   const words = stripHtml(html).split(" ").filter(Boolean).length;

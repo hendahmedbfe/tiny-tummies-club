@@ -9,21 +9,21 @@ export function RecipeCard({ post, onOpen }: { post: WpPost; onOpen: (p: WpPost)
   const saved = isFavorite(post.slug);
 
   return (
-    <article className="group card-soft overflow-hidden transition-shadow hover:shadow-lift">
-      <div className="relative overflow-hidden">
+    <article className="group card-soft flex h-full flex-col overflow-hidden transition-shadow hover:shadow-lift">
+      <div className="relative mx-auto aspect-[590/333] w-full max-w-[590px] overflow-hidden bg-muted">
         <button
           type="button"
           onClick={() => onOpen(post)}
-          className="block w-full"
+          className="block h-full w-full"
           aria-label={`Open ${post.title}`}
         >
           <img
             src={post.image ?? fallbackImg}
             alt={post.title}
             loading="lazy"
-            width={768}
-            height={576}
-            className="aspect-4/3 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            width={590}
+            height={333}
+            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
           />
         </button>
         <span className="absolute left-3 top-3 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
@@ -42,13 +42,13 @@ export function RecipeCard({ post, onOpen }: { post: WpPost; onOpen: (p: WpPost)
         </button>
       </div>
 
-      <div className="space-y-3 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-4">
         <h3 className="text-base leading-snug">
           <button type="button" onClick={() => onOpen(post)} className="text-left hover:text-primary">
             {post.title}
           </button>
         </h3>
-        <p className="line-clamp-2 text-sm text-muted-foreground">{post.excerpt}</p>
+        <p className="line-clamp-2 flex-1 text-sm text-muted-foreground">{post.excerpt}</p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" /> {post.readTime}

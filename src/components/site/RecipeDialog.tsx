@@ -7,7 +7,7 @@ import { useFavorites } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 export const wpProse =
-  "space-y-4 text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:underline [&_h2]:font-display [&_h2]:text-lg [&_h2]:text-foreground [&_h3]:font-display [&_h3]:text-base [&_h3]:text-foreground [&_img]:rounded-2xl [&_li]:mb-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5";
+  "space-y-4 text-sm leading-relaxed text-muted-foreground [&_a]:text-primary [&_a]:underline [&_h2]:scroll-mt-24 [&_h3]:scroll-mt-24 [&_h4]:scroll-mt-24 [&_h2]:font-display [&_h2]:text-lg [&_h2]:text-foreground [&_h3]:font-display [&_h3]:text-base [&_h3]:text-foreground [&_img]:rounded-2xl [&_li]:mb-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:text-foreground [&_ul]:list-disc [&_ul]:pl-5";
 
 export function RecipeDialog({
   post,
