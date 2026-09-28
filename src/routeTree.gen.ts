@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as BlogsRouteImport } from './routes/blogs'
+import { Route as RecipesRouteImport } from './routes/recipes'
 import { Route as EbooksIndexRouteImport } from './routes/ebooks.index'
 import { Route as EbooksIdRouteImport } from './routes/ebooks.$id'
+import { Route as JournalIndexRouteImport } from './routes/journal.index'
+import { Route as JournalSlugRouteImport } from './routes/journal.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,6 +33,11 @@ const BlogsRoute = BlogsRouteImport.update({
   path: '/blogs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecipesRoute = RecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EbooksIndexRoute = EbooksIndexRouteImport.update({
   id: '/ebooks/',
   path: '/ebooks/',
@@ -40,43 +48,90 @@ const EbooksIdRoute = EbooksIdRouteImport.update({
   path: '/ebooks/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JournalIndexRoute = JournalIndexRouteImport.update({
+  id: '/journal/',
+  path: '/journal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalSlugRoute = JournalSlugRouteImport.update({
+  id: '/journal/$slug',
+  path: '/journal/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/blogs': typeof BlogsRoute
+  '/recipes': typeof RecipesRoute
   '/ebooks/$id': typeof EbooksIdRoute
+  '/journal/$slug': typeof JournalSlugRoute
   '/ebooks/': typeof EbooksIndexRoute
+  '/journal/': typeof JournalIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/blogs': typeof BlogsRoute
+  '/recipes': typeof RecipesRoute
   '/ebooks/$id': typeof EbooksIdRoute
+  '/journal/$slug': typeof JournalSlugRoute
   '/ebooks': typeof EbooksIndexRoute
+  '/journal': typeof JournalIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/blogs': typeof BlogsRoute
+  '/recipes': typeof RecipesRoute
   '/ebooks/$id': typeof EbooksIdRoute
+  '/journal/$slug': typeof JournalSlugRoute
   '/ebooks/': typeof EbooksIndexRoute
+  '/journal/': typeof JournalIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/blogs' | '/ebooks/$id' | '/ebooks/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/blogs'
+    | '/recipes'
+    | '/ebooks/$id'
+    | '/journal/$slug'
+    | '/ebooks/'
+    | '/journal/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/blogs' | '/ebooks/$id' | '/ebooks'
-  id: '__root__' | '/' | '/about' | '/blogs' | '/ebooks/$id' | '/ebooks/'
+  to:
+    | '/'
+    | '/about'
+    | '/blogs'
+    | '/recipes'
+    | '/ebooks/$id'
+    | '/journal/$slug'
+    | '/ebooks'
+    | '/journal'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/blogs'
+    | '/recipes'
+    | '/ebooks/$id'
+    | '/journal/$slug'
+    | '/ebooks/'
+    | '/journal/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   BlogsRoute: typeof BlogsRoute
+  RecipesRoute: typeof RecipesRoute
   EbooksIdRoute: typeof EbooksIdRoute
+  JournalSlugRoute: typeof JournalSlugRoute
   EbooksIndexRoute: typeof EbooksIndexRoute
+  JournalIndexRoute: typeof JournalIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -102,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recipes': {
+      id: '/recipes'
+      path: '/recipes'
+      fullPath: '/recipes'
+      preLoaderRoute: typeof RecipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ebooks/': {
       id: '/ebooks/'
       path: '/ebooks'
@@ -116,6 +178,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EbooksIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/journal/': {
+      id: '/journal/'
+      path: '/journal'
+      fullPath: '/journal/'
+      preLoaderRoute: typeof JournalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal/$slug': {
+      id: '/journal/$slug'
+      path: '/journal/$slug'
+      fullPath: '/journal/$slug'
+      preLoaderRoute: typeof JournalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -123,8 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   BlogsRoute: BlogsRoute,
+  RecipesRoute: RecipesRoute,
   EbooksIdRoute: EbooksIdRoute,
+  JournalSlugRoute: JournalSlugRoute,
   EbooksIndexRoute: EbooksIndexRoute,
+  JournalIndexRoute: JournalIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
