@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { decodeEntities, stripHtml } from "./wp";
+import { getShopProducts } from "./shop.functions";
 
 export const WC_PRODUCTS_ENDPOINT = "https://babyfoodessentials.com/wp-json/wc/store/products";
 
@@ -67,13 +68,35 @@ function formatAmount(amount: number, prices: RawPrices) {
   return `${prefix}${body}${suffix}`.trim();
 }
 
+const CUR = String.raw`(?:[$€£]|USD|EUR|EGP|LE|dollars?|euros?)`;
+const AMOUNT = String.raw`(?:${CUR}\s*\d+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?\s*${CUR})`;
+/** "28$ instead of 46$ for the bundle", "only €9.99", "Price: 20$" etc. */
+const LEGACY_PRICE_SENTENCE = new RegExp(
+  String.raw`[^.!?<>\n]*${AMOUNT}(?:\s*(?:instead\s+of|rather\s+than|was|vs\.?|\/|-)\s*${AMOUNT})?[^.!?<>\n]*[.!?]?`,
+  "gi",
+);
+
+/** Remove hardcoded legacy prices so only the official store price is shown. */
+export function stripLegacyPrices(html: string) {
+  return html
+    .replace(/<(p|li|h[1-6]|span|strong|em)\b[^>]*>([\s\S]*?)<\/\1>/gi, (block, _t, inner: string) => {
+      const text = stripHtml(inner);
+      if (!new RegExp(AMOUNT, "i").test(text)) return block;
+      const remaining = text.replace(LEGACY_PRICE_SENTENCE, "").replace(/[\s\p{P}\p{S}]/gu, "");
+      return remaining.length < 3 ? "" : block.replace(LEGACY_PRICE_SENTENCE, "");
+    })
+    .replace(LEGACY_PRICE_SENTENCE, (m) => (new RegExp(AMOUNT, "i").test(m) ? "" : m));
+}
+
 function sanitizeProductDescription(html: string) {
   const isPaymentPrompt = (value: string) =>
     /pay\s*with\s*card|apple\s*pay|card\s*\/\s*apple\s*pay/i.test(stripHtml(value));
   const isPaymentLink = (attrs: string, content: string) =>
     /lemonsqueezy\.com|\/checkout\/buy\//i.test(attrs) || isPaymentPrompt(content);
 
-  return html
+  return stripLegacyPrices(html)
+    .replace(/<p\b[^>]*>\s*\[[a-z_]+[^\]]*\]\s*<\/p>/gi, "")
+    .replace(/\[[a-z_]+\b[^\]]*\]/gi, "")
     .replace(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/gi, (heading) =>
       isPaymentPrompt(heading) ? "" : heading,
     )
@@ -127,35 +150,12 @@ export function checkoutUrl(productId: number) {
 
 let cached: Promise<ShopProduct[]> | null = null;
 let cachedAt = 0;
-const CACHE_MS = 2 * 60 * 1000;
+const CACHE_MS = 60 * 1000;
 
-export async function fetchProducts(signal?: AbortSignal): Promise<ShopProduct[]> {
-  if (cached && Date.now() - cachedAt < CACHE_MS) return cached;
-
-  const request = (async () => {
-    const all: RawProduct[] = [];
-    let page = 1;
-    let totalPages = 1;
-
-    do {
-      const res = await fetch(`${WC_PRODUCTS_ENDPOINT}?per_page=100&page=${page}`, {
-        signal: signal ?? null,
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`Shop request failed (${res.status})`);
-      const data = (await res.json()) as RawProduct[];
-      if (!Array.isArray(data)) throw new Error("Unexpected response from the shop.");
-      all.push(...data);
-      if (page === 1) {
-        const header = res.headers.get("X-WP-TotalPages");
-        totalPages = header ? Number(header) || 1 : 1;
-      }
-      page += 1;
-    } while (page <= totalPages && page <= 20);
-
-    return all.map(mapProduct);
-  })();
-
+/** Products come from the server so prices always match WooCommerce checkout. */
+export async function fetchProducts(_signal?: AbortSignal, fresh = false): Promise<ShopProduct[]> {
+  if (!fresh && cached && Date.now() - cachedAt < CACHE_MS) return cached;
+  const request = getShopProducts({ data: { fresh } }).then((r) => r.products);
   cached = request;
   cachedAt = Date.now();
   request.catch(() => {
