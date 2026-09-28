@@ -39,7 +39,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ids) return;
     let cancelled = false;
-    fetchProducts()
+    fetchProducts(undefined, true)
       .then((live) => {
         if (cancelled) return;
         setItems((current) => {
@@ -91,7 +91,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem: (productId) => update(items.filter((item) => item.id !== productId)),
       clear: () => update([]),
       hasItem: (productId) => items.some((item) => item.id === productId),
-      total: items.reduce((sum, item) => sum + item.price, 0),
+      // Sum in cents to avoid floating-point drift vs. the WooCommerce total.
+      total: items.reduce((sum, item) => sum + Math.round(item.price * 100), 0) / 100,
     }),
     [addItem, items, update],
   );
