@@ -14,12 +14,12 @@ export const createSignedCheckoutUrl = createServerFn({ method: "POST" })
     const items = data.ids.join(",");
 
     if (!secret) {
-      return { url: `https://babyfoodessentials.com/checkout/?add-to-cart=${items}` };
+      return { url: `https://babyfoodessentials.com/cart/?add-to-cart=${items}` };
     }
 
     const expires = Math.floor(Date.now() / 1000) + 60 * 60;
     const signature = createHmac("sha256", secret).update(`${items}|${expires}`).digest("hex");
-    const url = `https://babyfoodessentials.com/?sync_cart=${encodeURIComponent(items)}&expires=${expires}&sig=${signature}`;
+    const url = `https://babyfoodessentials.com/cart/?sync_cart=${encodeURIComponent(items)}&expires=${expires}&sig=${signature}`;
 
     return { url };
   });
